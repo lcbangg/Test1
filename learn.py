@@ -38,6 +38,15 @@ if not os.path.isfile(FILE_NAME):
 wb = openpyxl.load_workbook(FILE_NAME)
 ws = wb.active
 
+# Read the student list from Excel sheet
+student_list = []
+for row in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):
+    student_list.append({
+        'name': row[0],
+        'phone': row[1],
+        'present': row[2],
+    })
+
 # Start capturing video from webcam
 face_cascade = cv2.CascadeClassifier(HAAR_FILE)
 webcam = cv2.VideoCapture(0)
@@ -62,19 +71,23 @@ while True:
         # If the prediction score is below the threshold, add the name to the Excel sheet
         if prediction[1] < THRESHOLD:
             name = names[prediction[0]]
-            present = False
-            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):
-                if row[0] == name:
-                    present = True
-                    break
-            if not present:
-                row = (name, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                ws.append(row)
-                print("Added new person to Excel sheet:", name)
-            # Draw the name below the face rectangle
-            cv2.putText(im, name, (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
-        else:
-            cv2.putText(im, 'not recognized', (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
+            for student in student_list:
+                if student['name'] == name:
+                    # Check if the student is already marked as present
+                    if not student['present']:
+                        # Mark the student as present and record the time
+                        student['present'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        # Update the Excel sheet
+                        updated = False
+                        flag = 1
+                        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):
+                            flag += 1
+                            if row[0] == student['name']:
+                                ws.cell(flag, column=3, value=student['present'])
+                                updated = True
+                                wb.save(FILE_NAME)
+                                break
+            cv2.putText(im, name + ' - ' + str(prediction[1]), (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
     # Display the image and check for key press
     cv2.imshow('Face Recognition', im)
     key = cv2.waitKey(10)

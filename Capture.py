@@ -31,7 +31,10 @@ while count < 20:
         face_i = faces[0]
         (x, y, w, h) = [v * size for v in face_i]
         face = gray[y:y + h, x:x + w]
-        face_resize = cv2.resize(face, (im_width, im_height))
+
+        # Xử lý ảnh trước khi lưu
+        face_aligned = cv2.resize(face, (im_width, im_height))
+        face_aligned = cv2.equalizeHist(face_aligned)
 
         # Tính số thứ tự ảnh mới
         existing_pics = [int(n[:n.find('.')]) for n in os.listdir(path) if n[0] != '.']
@@ -39,7 +42,7 @@ while count < 20:
         if existing_pics:
             pin = max(existing_pics) + 1
             # Lưu ảnh
-            cv2.imwrite(f"{path}/{pin}.png", face_resize)
+            cv2.imwrite(f"{path}/{pin}.png", face_aligned)
 
             # Vẽ hình chữ nhật quanh khuôn mặt và hiển thị tên
             cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), 3)
@@ -52,7 +55,7 @@ while count < 20:
             count += 1
         else:
             pin = 1
-            cv2.imwrite(f"{path}/{pin}.png", face_resize)
+            cv2.imwrite(f"{path}/{pin}.png", face_aligned)
 
             # Vẽ hình chữ nhật quanh khuôn mặt và hiển thị tên
             cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), 3)
